@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Duo Clash</title>
+    <title>Duo Clash - Arena Duel</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         
@@ -13,32 +13,69 @@
         #login, #game { width: 100%; max-width: 500px; padding: 20px; text-align: center; }
         #game { display: none; flex-direction: column; height: 100vh; justify-content: space-between; }
         
-        h1 { font-weight: 800; margin-bottom: 20px; color: #38bdf8; }
+        h1 { font-weight: 800; margin-bottom: 20px; color: #38bdf8; letter-spacing: 1px;}
         input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #1e293b; background: #0f172a; color: white; outline: none; }
         button.primary { width: 100%; padding: 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         button.primary:hover { background: #0369a1; }
+
+        #login-instructions { text-align: left; background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; font-size: 14px;}
+        #login-instructions h3 { margin-bottom: 10px; color: #38bdf8;}
+        #login-instructions p { margin-bottom: 8px; color: #cbd5e1;}
+        
+        /* Matchmaking Visuals */
+        #waiting-area { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #38bdf8;}
+        .spinner {
+            border: 4px solid rgba(56, 189, 248, 0.1);
+            border-left-color: #38bdf8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         
         /* Stats & Bars */
         .player-card { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 10px; text-align: left; }
-        .player-name { font-weight: 600; font-size: 14px; margin-bottom: 5px; display: flex; justify-content: space-between; }
-        
+        .player-info { display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+        .player-name { color: #cbd5e1; }
+        .hp-txt { color: #ef4444; }
+
         .bar-bg { width: 100%; height: 8px; background: #334155; border-radius: 4px; margin-bottom: 8px; overflow: hidden; }
-        .hp-bar { height: 100%; background: #ef4444; width: 100%; transition: width 0.3s; }
-        .stam-bar { height: 100%; background: #22c55e; width: 100%; transition: width 0.3s; }
+        .hp-bar { height: 100%; background: linear-gradient(90deg, #ef4444, #991b1b); width: 100%; transition: width 0.3s; }
+        /* Energy (abstract stamina) bar - blue-green pulse */
+        .stam-bar { height: 100%; background: linear-gradient(90deg, #22c55e, #10b981); width: 100%; transition: width 0.3s; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
         
         /* Arena / Status area */
-        #arena { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #status { font-size: 24px; font-weight: 800; color: #f87171; text-transform: uppercase; margin-bottom: 10px; height: 30px; }
-        #moves-reveal { display: flex; gap: 20px; font-size: 18px; font-weight: 600; color: #cbd5e1; }
+        #arena { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;}
+        #status { font-size: 28px; font-weight: 800; color: #ef4444; text-transform: uppercase; margin-bottom: 15px; height: 35px; letter-spacing: 1px;}
+        #moves-reveal { display: flex; gap: 20px; font-size: 18px; font-weight: 600; color: #cbd5e1; height: 30px;}
+        #moves-reveal > div { display: flex; align-items: center; gap: 8px;}
+
+        /* Instructions Modal */
+        #instructions-btn { position: absolute; top: 10px; right: 10px; background: none; border: 2px solid #334155; color: #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s;}
+        #instructions-btn:hover { border-color: #38bdf8; color: #38bdf8;}
+        #instructions-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 17, 33, 0.95); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
+        #instructions-content { background: #1e293b; border-radius: 12px; padding: 25px; max-width: 400px; text-align: left; max-height: 80vh; overflow-y: auto; position: relative; }
+        #close-instructions { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #cbd5e1; font-size: 20px; cursor: pointer;}
+        #close-instructions:hover { color: #ef4444;}
+        #instructions-content h2 { margin-bottom: 15px; color: #38bdf8; font-weight: 800;}
+        #instructions-content h3 { margin-top: 15px; margin-bottom: 8px; color: #cbd5e1;}
+        #instructions-content p, #instructions-content li { margin-bottom: 6px; font-size: 14px; color: #cbd5e1; line-height: 1.5;}
         
         /* Move Buttons */
         #controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; opacity: 0.5; pointer-events: none; transition: 0.2s; }
         #controls.active { opacity: 1; pointer-events: auto; }
         
-        .move-btn { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 15px; color: white; font-size: 14px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: 0.1s; }
-        .move-btn:active { transform: scale(0.95); border-color: #38bdf8; }
-        .move-btn span { font-size: 28px; }
+        .move-btn { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 15px; color: white; font-size: 14px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: 0.1s; position: relative;}
+        .move-btn:active { transform: scale(0.95); border-color: #38bdf8; background: #0f172a;}
+        .move-btn span { font-size: 32px; }
+        .move-btn:focus { outline: 2px solid #38bdf8; outline-offset: 2px;}
+
         .block-btn { grid-column: span 2; background: #0f172a; border-color: #0ea5e9; }
+        .block-btn:hover { background: #1e293b; }
         
     </style>
 </head>
@@ -46,6 +83,12 @@
 
     <div id="login">
         <h1>DUO CLASH</h1>
+        <div id="login-instructions">
+            <h3>WELCOME, WARRIOR.</h3>
+            <p>1. Enter your unique name.</p>
+            <p>2. Share a specific 2-digit code with a friend.</p>
+            <p>3. Wait for the duel to begin once both players join.</p>
+        </div>
         <input type="text" id="username" placeholder="Enter Username" required>
         <input type="number" id="roomCode" placeholder="2-Digit Room Code (e.g. 07)" max="99" required>
         <button class="primary" onclick="joinGame()">Enter Arena</button>
@@ -54,28 +97,60 @@
 
     <div id="game">
         <div class="player-card" id="enemy-card">
-            <div class="player-name"><span id="enemy-name">Opponent</span> <span>HP: <span id="enemy-hp-txt">100</span></span></div>
+            <div class="player-info"><span class="player-name" id="enemy-name">Opponent</span> <span><span class="hp-txt">HP</span>: <span id="enemy-hp-txt">100</span></span></div>
             <div class="bar-bg"><div class="hp-bar" id="enemy-hp"></div></div>
             <div class="bar-bg"><div class="stam-bar" id="enemy-stam"></div></div>
         </div>
 
         <div id="arena">
-            <div id="status">WAITING...</div>
+            <div id="waiting-area">
+                <div class="spinner"></div>
+                <span>WAITING FOR OPPONENT...</span>
+            </div>
+            <button id="instructions-btn" onclick="openInstructions()">INSTRUCTIONS</button>
+            <div id="status"></div>
             <div id="moves-reveal"></div>
         </div>
 
         <div class="player-card" id="my-card">
-            <div class="player-name"><span id="my-name">Me</span> <span>HP: <span id="my-hp-txt">100</span></span></div>
+            <div class="player-info"><span class="player-name" id="my-name">Me</span> <span><span class="hp-txt">HP</span>: <span id="my-hp-txt">100</span></span></div>
             <div class="bar-bg"><div class="hp-bar" id="my-hp"></div></div>
             <div class="bar-bg"><div class="stam-bar" id="my-stam"></div></div>
         </div>
 
         <div id="controls">
-            <button class="move-btn" onclick="sendMove('left_slash')"><span>↙️</span> Left Slash</button>
-            <button class="move-btn" onclick="sendMove('right_slash')"><span>↘️</span> Right Slash</button>
-            <button class="move-btn" onclick="sendMove('overhead')"><span>⬇️</span> Overhead</button>
-            <button class="move-btn" onclick="sendMove('stab')"><span>🤺</span> Stab</button>
-            <button class="move-btn block-btn" onclick="sendMove('block')"><span>🛡️</span> Block</button>
+            <button class="move-btn" onclick="sendMove('left_slash')" title="L.Slash: ↙️ - Cost: low"><span>↙️</span> Left Slash</button>
+            <button class="move-btn" onclick="sendMove('right_slash')" title="R.Slash: ↘️ - Cost: low"><span>↘️</span> Right Slash</button>
+            <button class="move-btn" onclick="sendMove('overhead')" title="O.head: ⬇️ - Cost: med"><span>⬇️</span> Overhead</button>
+            <button class="move-btn" onclick="sendMove('stab')" title="Stab: 🤺 - Cost: med"><span>🤺</span> Stab</button>
+            <button class="move-btn block-btn" onclick="sendMove('block')" title="Block: 🛡️ - Cost: high"><span>🛡️</span> Block</button>
+        </div>
+    </div>
+
+    <!-- Instructions Modal -->
+    <div id="instructions-modal">
+        <div id="instructions-content">
+            <button id="close-instructions" onclick="closeInstructions()">&times;</button>
+            <h2>HOW TO PLAY</h2>
+            <p>Duo Clash is a real-time strategic fighting game. Timing is everything.</p>
+            <h3>GAMEPLAY:</h3>
+            <p>1. Both players submit moves in a 1-second timeframe.</p>
+            <p>2. Moves are resolved simultaneously, HP and energy are updated.</p>
+            <h3>ENERGY COST:</h3>
+            <ul>
+                <li>L/R Slash < O.head = Stab < Block.</li>
+                <li>Energy recovers slowly each turn.</li>
+                <li>If Energy hits 0, you cannot move for 1 second.</li>
+            </ul>
+            <h3>DAMAGE:</h3>
+            <p>Health deteroriates when hit. Block prevents damage.</p>
+            <h3>COUNTERS (0 COST / 0 DAMAGE):</h3>
+            <ul>
+                <li>Overhead vs Overhead</li>
+                <li>Stab vs Stab</li>
+                <li>Opposite Slashes (Left vs Right)</li>
+            </ul>
+            <p>Victory goes to the player whose opponent is reduced to zero Health.</p>
         </div>
     </div>
 
@@ -88,7 +163,10 @@
         function joinGame() {
             const username = document.getElementById('username').value;
             roomCode = document.getElementById('roomCode').value;
-            if (!username || !roomCode) return;
+            if (!username || !roomCode || roomCode.length > 2) {
+                document.getElementById('error-msg').innerText = "Valid username and 2-digit code required.";
+                return;
+            }
             
             socket.emit('join_room', { username, roomCode });
         }
@@ -96,12 +174,13 @@
         socket.on('waiting', (msg) => {
             document.getElementById('login').style.display = 'none';
             document.getElementById('game').style.display = 'flex';
-            document.getElementById('status').innerText = msg;
+            document.getElementById('status').innerText = ""; // Hide resolve status
         });
 
         socket.on('game_start', (players) => {
             document.getElementById('login').style.display = 'none';
             document.getElementById('game').style.display = 'flex';
+            document.getElementById('waiting-area').style.display = 'none';
             myId = socket.id;
             updateUIStats(players);
         });
@@ -112,6 +191,7 @@
             document.getElementById('moves-reveal').innerHTML = '';
             let timeLeft = time;
             document.getElementById('status').innerText = timeLeft;
+            document.getElementById('status').style.color = '#cbd5e1';
             const timer = setInterval(() => {
                 timeLeft--;
                 if (timeLeft > 0) {
@@ -124,36 +204,38 @@
 
         socket.on('action_phase', () => {
             document.getElementById('status').innerText = 'MOVE NOW!';
-            document.getElementById('status').style.color = '#4ade80'; // Green
+            document.getElementById('status').style.color = '#38bdf8'; // Sky blue
             document.getElementById('controls').classList.add('active');
         });
 
         socket.on('clash_event', (msg) => {
             document.getElementById('status').innerText = msg;
-            document.getElementById('status').style.color = '#facc15'; // Yellow
+            document.getElementById('status').style.color = '#cbd5e1'; // Grey
         });
 
         socket.on('turn_result', (result) => {
             document.getElementById('controls').classList.remove('active');
             document.getElementById('status').innerText = 'RESOLVING...';
-            document.getElementById('status').style.color = '#f87171';
+            document.getElementById('status').style.color = '#ef4444'; // Red
             
             const myData = result.p1.id === myId ? result.p1 : result.p2;
             const enemyData = result.p1.id === myId ? result.p2 : result.p1;
             
             document.getElementById('moves-reveal').innerHTML = `
-                <div>Me: ${formatMove(myData.move)}</div>
+                <div>Me: ${formatMoveIcon(myData.move)}</div>
                 <div>vs</div>
-                <div>Enemy: ${formatMove(enemyData.move)}</div>
+                <div>Enemy: ${formatMoveIcon(enemyData.move)}</div>
             `;
             
             if(myData.stunned) {
-                setTimeout(() => alert("Stamina Depleted! You are stunned for the next turn!"), 500);
+                // Short screen effect or notification for stun
+                setTimeout(() => document.getElementById('status').innerText = 'STUNNED!', 500);
             }
         });
 
         socket.on('game_over', (winner) => {
             document.getElementById('status').innerText = winner === 'Draw' ? 'DRAW!' : `${winner} WINS!`;
+            document.getElementById('status').style.color = '#38bdf8';
             document.getElementById('controls').classList.remove('active');
         });
 
@@ -185,9 +267,24 @@
             }
         }
 
-        function formatMove(move) {
-            if (move === 'none') return 'Missed';
-            return move.replace('_', ' ').toUpperCase();
+        function formatMoveIcon(move) {
+            if (move === 'none') return '❌';
+            const moves = {
+                'left_slash': '↙️',
+                'right_slash': '↘️',
+                'overhead': '⬇️',
+                'stab': '🤺',
+                'block': '🛡️'
+            };
+            return moves[move] || '❓';
+        }
+
+        function openInstructions() {
+            document.getElementById('instructions-modal').style.display = 'flex';
+        }
+
+        function closeInstructions() {
+            document.getElementById('instructions-modal').style.display = 'none';
         }
     </script>
 </body>
