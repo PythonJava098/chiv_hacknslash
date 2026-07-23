@@ -104,7 +104,7 @@
         #instructions-content h2 { color: #d4af37; margin-bottom: 10px; text-shadow: 2px 2px 0px #000;}
         #instructions-content h3 { color: #fff; margin-top: 10px; }
         
-        /* Move Buttons (Pixel Art Style) - Scaled down for smaller footprint */
+        /* Move Buttons (Pixel Art Style) */
         #controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; opacity: 0.5; pointer-events: none; transition: 0.2s; }
         #controls.active { opacity: 1; pointer-events: auto; }
         
@@ -122,6 +122,29 @@
         }
         
         .block-btn { grid-column: span 2; background: #2c3e50; }
+
+        /* =========================================
+           MOBILE RESPONSIVENESS OVERRIDE
+           Squishes the UI for short/narrow screens
+           ========================================= */
+        @media (max-width: 500px), (max-height: 800px) {
+            #login, #game { padding: 8px; }
+            .player-card { padding: 8px; margin-bottom: 5px; border-width: 3px; }
+            .player-info { font-size: 18px; margin-bottom: 4px; }
+            .bar-bg { height: 10px; margin-bottom: 4px; border-width: 1px; }
+            
+            #arena { margin: 5px 0; }
+            #status { font-size: 24px; height: 28px; margin-bottom: 5px; }
+            #moves-reveal { font-size: 20px; height: 24px; gap: 10px; }
+            .hourglass { font-size: 28px; margin-bottom: 5px; }
+            
+            #controls { gap: 5px; }
+            .move-btn { padding: 4px 2px; font-size: 16px; border-width: 3px; gap: 0px; }
+            .move-btn span { font-size: 22px; margin-bottom: 2px; }
+            
+            .top-btn { top: 0px; font-size: 14px; }
+            h1 { font-size: 32px; margin-bottom: 10px; }
+        }
         
     </style>
 </head>
@@ -155,7 +178,7 @@
             </div>
             
             <button class="top-btn" id="exit-btn" onclick="exitGame()">FLEE</button> 
-            <button class="top-btn" id="instructions-btn" onclick="openInstructions()">LAWS</button>
+            <button class="top-btn" id="instructions-btn" onclick="openInstructions()">TOME</button>
             
             <div id="status"></div>
             <div id="moves-reveal"></div>
@@ -263,7 +286,6 @@
             const myData = result.p1.id === myId ? result.p1 : result.p2;
             const enemyData = result.p1.id === myId ? result.p2 : result.p1;
             
-            // Injects the correctly formatted move icons directly into the arena center
             document.getElementById('moves-reveal').innerHTML = `
                 <div>${formatMoveIcon(myData.move)}</div>
                 <div>vs</div>
@@ -326,7 +348,6 @@
             }
         }
 
-        // Mirrors the correct unique icons back to the JavaScript for the arena reveal
         function formatMoveIcon(move) {
             if (move === 'none') return '❌';
             const moves = { 
