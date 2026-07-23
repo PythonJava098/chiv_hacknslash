@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Duo Clash</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: #0b1121; color: #e2e8f0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        
+        #login, #game { width: 100%; max-width: 500px; padding: 20px; text-align: center; }
+        #game { display: none; flex-direction: column; height: 100vh; justify-content: space-between; }
+        
+        h1 { font-weight: 800; margin-bottom: 20px; color: #38bdf8; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #1e293b; background: #0f172a; color: white; outline: none; }
+        button.primary { width: 100%; padding: 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        button.primary:hover { background: #0369a1; }
+        
+        /* Stats & Bars */
+        .player-card { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 10px; text-align: left; }
+        .player-name { font-weight: 600; font-size: 14px; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        
+        .bar-bg { width: 100%; height: 8px; background: #334155; border-radius: 4px; margin-bottom: 8px; overflow: hidden; }
+        .hp-bar { height: 100%; background: #ef4444; width: 100%; transition: width 0.3s; }
+        .stam-bar { height: 100%; background: #22c55e; width: 100%; transition: width 0.3s; }
+        
+        /* Arena / Status area */
+        #arena { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #status { font-size: 24px; font-weight: 800; color: #f87171; text-transform: uppercase; margin-bottom: 10px; height: 30px; }
+        #moves-reveal { display: flex; gap: 20px; font-size: 18px; font-weight: 600; color: #cbd5e1; }
+        
+        /* Move Buttons */
+        #controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; opacity: 0.5; pointer-events: none; transition: 0.2s; }
+        #controls.active { opacity: 1; pointer-events: auto; }
+        
+        .move-btn { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 15px; color: white; font-size: 14px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: 0.1s; }
+        .move-btn:active { transform: scale(0.95); border-color: #38bdf8; }
+        .move-btn span { font-size: 28px; }
+        .block-btn { grid-column: span 2; background: #0f172a; border-color: #0ea5e9; }
+        
+    </style>
+</head>
+<body>
+
+    <div id="login">
+        <h1>DUO CLASH</h1>
+        <input type="text" id="username" placeholder="Enter Username" required>
+        <input type="number" id="roomCode" placeholder="2-Digit Room Code (e.g. 07)" max="99" required>
+        <button class="primary" onclick="joinGame()">Enter Arena</button>
+        <p id="error-msg" style="color: #ef4444; margin-top: 15px;"></p>
+    </div>
+
+    <div id="game">
+        <div class="player-card" id="enemy-card">
+            <div class="player-name"><span id="enemy-name">Opponent</span> <span>HP: <span id="enemy-hp-txt">100</span></span></div>
+            <div class="bar-bg"><div class="hp-bar" id="enemy-hp"></div></div>
+            <div class="bar-bg"><div class="stam-bar" id="enemy-stam"></div></div>
+        </div>
+
+        <div id="arena">
+            <div id="status">WAITING...</div>
+            <div id="moves-reveal"></div>
+        </div>
+
+        <div class="player-card" id="my-card">
+            <div class="player-name"><span id="my-name">Me</span> <span>HP: <span id="my-hp-txt">100</span></span></div>
+            <div class="bar-bg"><div class="hp-bar" id="my-hp"></div></div>
+            <div class="bar-bg"><div class="stam-bar" id="my-stam"></div></div>
+        </div>
+
+        <div id="controls">
+            <button class="move-btn" onclick="sendMove('left_slash')"><span>↙️</span> Left Slash</button>
+            <button class="move-btn" onclick="sendMove('right_slash')"><span>↘️</span> Right Slash</button>
+            <button class="move-btn" onclick="sendMove('overhead')"><span>⬇️</span> Overhead</button>
+            <button class="move-btn" onclick="sendMove('stab')"><span>🤺</span> Stab</button>
+            <button class="move-btn block-btn" onclick="sendMove('block')"><span>🛡️</span> Block</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let myId = '';
+        let roomCode = '';
+
+        function joinGame() {
+            const username = document.getElementById('username').value;
+            roomCode = document.getElementById('roomCode').value;
+            if (!username || !roomCode) return;
+            
+            socket.emit('join_room', { username, roomCode });
+        }
+
+        socket.on('waiting', (msg) => {
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('game').style.display = 'flex';
+            document.getElementById('status').innerText = msg;
+        });
+
+        socket.on('game_start', (players) => {
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('game').style.display = 'flex';
+            myId = socket.id;
+            updateUIStats(players);
+        });
+
+        socket.on('update_stats', updateUIStats);
+
+        socket.on('countdown', (time) => {
+            document.getElementById('moves-reveal').innerHTML = '';
+            let timeLeft = time;
+            document.getElementById('status').innerText = timeLeft;
+            const timer = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    document.getElementById('status').innerText = timeLeft;
+                } else {
+                    clearInterval(timer);
+                }
+            }, 1000);
+        });
+
+        socket.on('action_phase', () => {
+            document.getElementById('status').innerText = 'MOVE NOW!';
+            document.getElementById('status').style.color = '#4ade80'; // Green
+            document.getElementById('controls').classList.add('active');
+        });
+
+        socket.on('clash_event', (msg) => {
+            document.getElementById('status').innerText = msg;
+            document.getElementById('status').style.color = '#facc15'; // Yellow
+        });
+
+        socket.on('turn_result', (result) => {
+            document.getElementById('controls').classList.remove('active');
+            document.getElementById('status').innerText = 'RESOLVING...';
+            document.getElementById('status').style.color = '#f87171';
+            
+            const myData = result.p1.id === myId ? result.p1 : result.p2;
+            const enemyData = result.p1.id === myId ? result.p2 : result.p1;
+            
+            document.getElementById('moves-reveal').innerHTML = `
+                <div>Me: ${formatMove(myData.move)}</div>
+                <div>vs</div>
+                <div>Enemy: ${formatMove(enemyData.move)}</div>
+            `;
+            
+            if(myData.stunned) {
+                setTimeout(() => alert("Stamina Depleted! You are stunned for the next turn!"), 500);
+            }
+        });
+
+        socket.on('game_over', (winner) => {
+            document.getElementById('status').innerText = winner === 'Draw' ? 'DRAW!' : `${winner} WINS!`;
+            document.getElementById('controls').classList.remove('active');
+        });
+
+        socket.on('error', (msg) => {
+            document.getElementById('error-msg').innerText = msg;
+        });
+
+        function sendMove(move) {
+            document.getElementById('controls').classList.remove('active');
+            document.getElementById('status').innerText = 'MOVE LOCKED';
+            socket.emit('submit_move', { roomCode, move });
+        }
+
+        function updateUIStats(players) {
+            const me = players.find(p => p.id === myId);
+            const enemy = players.find(p => p.id !== myId);
+            
+            if (me) {
+                document.getElementById('my-name').innerText = me.username;
+                document.getElementById('my-hp').style.width = me.hp + '%';
+                document.getElementById('my-stam').style.width = me.stamina + '%';
+                document.getElementById('my-hp-txt').innerText = me.hp;
+            }
+            if (enemy) {
+                document.getElementById('enemy-name').innerText = enemy.username;
+                document.getElementById('enemy-hp').style.width = enemy.hp + '%';
+                document.getElementById('enemy-stam').style.width = enemy.stamina + '%';
+                document.getElementById('enemy-hp-txt').innerText = enemy.hp;
+            }
+        }
+
+        function formatMove(move) {
+            if (move === 'none') return 'Missed';
+            return move.replace('_', ' ').toUpperCase();
+        }
+    </script>
+</body>
+</html>
